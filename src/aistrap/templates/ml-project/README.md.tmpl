@@ -1,0 +1,73 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `ml-project` template.
+
+A scikit-learn project with a complete, working example workflow: train a model,
+save it, and make predictions with it. The example uses the built-in iris
+dataset so everything runs right away - swap in your own data when you are ready.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── config.py     # Settings loaded from the environment
+│   ├── train.py      # Train, evaluate and save the model
+│   └── predict.py    # Load the model and predict
+├── config/           # Configuration files
+├── data/             # Datasets (git-ignored by default)
+├── models/           # Trained model artifacts (git-ignored by default)
+├── notebooks/        # Exploratory notebooks
+├── tests/            # pytest test suite
+├── .env.example
+├── pytest.ini
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # Windows: copy .env.example .env
+```
+
+## Train the model
+
+```bash
+python -m app.train
+```
+
+```
+Accuracy: 0.933
+
+              precision    recall  f1-score   support
+...
+Model saved to models/model.joblib
+```
+
+## Make a prediction
+
+```bash
+python -m app.predict 5.1 3.5 1.4 0.2
+# Prediction: setosa (confidence 0.981)
+```
+
+Running `python -m app.predict` without arguments uses an example sample.
+
+## Run the tests
+
+```bash
+pytest
+```
+
+## Using your own data
+
+1. Put your dataset in `data/`.
+2. Rewrite `load_dataset()` in `app/train.py` to read it; it only has to return
+   features, labels, class names and feature names.
+3. Adjust `build_pipeline()` with the preprocessing and estimator you need.
+4. Run `python -m app.train` again.
+
+Settings such as the model path, test split and random seed live in `.env`.

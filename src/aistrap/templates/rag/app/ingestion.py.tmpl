@@ -1,0 +1,109 @@
+"""Loading documents from disk and splitting them into chunks.
+
+Swap this module out when you move to a real document store - the rest of the
+pipeline only depends on the :class:`Chunk` dataclass.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+#: File extensions that are treated as plain text.
+TEXT_EXTENSIONS = {".txt", ".md", ".rst"}
+
+
+@dataclass(frozen=True)
+class Document:
+    """A source document loaded from disk."""
+
+    source: str
+    text: str
+
+
+@dataclass(frozen=True)
+class Chunk:
+    """A slice of a document, small enough to fit in a prompt."""
+
+    source: str
+    index: int
+    text: str
+
+    @property
+    def label(self) -> str:
+        """A short human-readable reference, e.g. ``guide.md#2``."""
+        return f"{self.source}#{self.index}"
+
+
+def load_documents(directory: Path) -> list[Document]:
+    """Load every text document in ``directory`` (recursively).
+
+    Unreadable files are skipped rather than aborting the whole run.
+    """
+    if not directory.is_dir():
+        return []
+    documents: list[Document] = []
+    for path in sorted(directory.rglob("*")):
+        if not path.is_file() or path.suffix.lower() not in TEXT_EXTENSIONS:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if text.strip():
+            documents.append(
+                Document(source=path.relative_to(directory).as_posix(), text=text)
+            )
+    return documents
+
+
+def chunk_text(text: str, chunk_size: int = 400, overlap: int = 80) -> list[str]:
+    """Split ``text`` into overlapping chunks of roughly ``chunk_size`` characters.
+
+    Splitting happens on whitespace so that words stay intact. The overlap keeps
+    sentences that straddle a boundary retrievable from both chunks.
+
+    Raises:
+        ValueError: if ``chunk_size`` is not positive or ``overlap`` is too large.
+    """
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    if not 0 <= overlap < chunk_size:
+        raise ValueError("overlap must be >= 0 and smaller than chunk_size")
+
+    words = text.split()
+    if not words:
+        return []
+
+    chunks: list[str] = []
+    current: list[str] = []
+    length = 0
+    for word in words:
+        current.append(word)
+        length += len(word) + 1
+        if length >= chunk_size:
+            chunks.append(" ".join(current))
+            # Keep the tail of this chunk as the head of the next one.
+            tail: list[str] = []
+            tail_length = 0
+            for previous in reversed(current):
+                if tail_length + len(previous) + 1 > overlap:
+                    break
+                tail.insert(0, previous)
+                tail_length += len(previous) + 1
+            current = tail
+            length = tail_length
+    if current:
+        chunks.append(" ".join(current))
+    return chunks
+
+
+def build_chunks(
+    documents: list[Document], chunk_size: int = 400, overlap: int = 80
+) -> list[Chunk]:
+    """Turn documents into the chunks that get indexed."""
+    chunks: list[Chunk] = []
+    for document in documents:
+        for index, piece in enumerate(chunk_text(document.text, chunk_size, overlap)):
+            chunks.append(Chunk(source=document.source, index=index, text=piece))
+    return chunks

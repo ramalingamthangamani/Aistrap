@@ -1,0 +1,18 @@
+"""Tests for {{project_name}}."""
+
+from app.main import SAMPLE_TEXT, tokenize, word_frequencies
+
+
+def test_tokenize_lowercases_words() -> None:
+    assert tokenize("Hello, World!") == ["hello", "world"]
+
+
+def test_word_frequencies_returns_most_common_first() -> None:
+    results = word_frequencies("data data models", limit=2)
+    assert results[0] == ("data", 2)
+    assert len(results) == 2
+
+
+def test_word_frequencies_respects_limit() -> None:
+    assert word_frequencies(SAMPLE_TEXT, limit=3) != []
+    assert len(word_frequencies(SAMPLE_TEXT, limit=3)) == 3

@@ -1,0 +1,53 @@
+"""Tests for the {{project_name}} retrieval pipeline."""
+
+from app.ingestion import Chunk, chunk_text, load_documents
+from app.main import answer, build_prompt
+from app.retrieval import Retriever
+
+CHUNKS = [
+    Chunk("rag.md", 0, "Retrieval augmented generation grounds answers in documents."),
+    Chunk("cooking.md", 0, "Boil the pasta in salted water for eight minutes."),
+]
+
+
+def make_retriever() -> Retriever:
+    retriever = Retriever()
+    retriever.index(CHUNKS)
+    return retriever
+
+
+def test_chunk_text_splits_long_text() -> None:
+    chunks = chunk_text("word " * 400, chunk_size=100, overlap=20)
+    assert len(chunks) > 1
+    assert all(chunk for chunk in chunks)
+
+
+def test_chunk_text_handles_empty_input() -> None:
+    assert chunk_text("") == []
+
+
+def test_search_ranks_the_relevant_chunk_first() -> None:
+    results = make_retriever().search("How does retrieval augmented generation work?")
+    assert results
+    assert results[0].chunk.source == "rag.md"
+
+
+def test_search_ignores_unrelated_queries() -> None:
+    assert make_retriever().search("quantum chromodynamics") == []
+
+
+def test_answer_returns_text_and_sources() -> None:
+    text, results = answer("retrieval augmented generation", make_retriever())
+    assert "retrieval" in text.lower()
+    assert results
+
+
+def test_build_prompt_includes_question_and_context() -> None:
+    results = make_retriever().search("retrieval augmented generation")
+    prompt = build_prompt("What is RAG?", results)
+    assert "What is RAG?" in prompt
+    assert "rag.md" in prompt
+
+
+def test_load_documents_ignores_missing_directory(tmp_path) -> None:
+    assert load_documents(tmp_path / "nope") == []

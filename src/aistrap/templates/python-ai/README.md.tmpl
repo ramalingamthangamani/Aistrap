@@ -1,0 +1,49 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `python-ai` template.
+
+A starting point for a Python AI/ML project: a small application package, tests,
+and folders for your data, notebooks and configuration.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/             # Application code
+│   ├── config.py    # Settings loaded from the environment
+│   └── main.py      # Entry point
+├── config/          # Configuration files
+├── data/            # Datasets (git-ignored by default)
+├── notebooks/       # Exploratory notebooks
+├── tests/           # pytest test suite
+├── .env.example     # Example environment variables
+├── pytest.ini
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # Windows: copy .env.example .env
+```
+
+## Run the app
+
+```bash
+python -m app.main
+```
+
+## Run the tests
+
+```bash
+pytest
+```
+
+## Next steps
+
+- Add your model or data-processing code under `app/`.
+- Keep raw datasets in `data/` (they are git-ignored).
+- Add a dependency to `requirements.txt` whenever you import something new.

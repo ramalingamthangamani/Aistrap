@@ -1,0 +1,48 @@
+"""Tests for the {{project_name}} training and prediction code."""
+
+import pytest
+
+from app.predict import EXAMPLE_FEATURES, ModelNotTrainedError, load_model, predict
+from app.train import build_pipeline, load_dataset, train
+
+
+@pytest.fixture(scope="module")
+def model_bundle(tmp_path_factory):
+    """Train the model once and reuse it across the tests in this module."""
+    model_path = tmp_path_factory.mktemp("models") / "model.joblib"
+    train(model_path=model_path)
+    return load_model(model_path)
+
+
+def test_load_dataset_returns_matching_features_and_labels() -> None:
+    dataset = load_dataset()
+    assert len(dataset.features) == len(dataset.labels)
+    assert dataset.target_names
+    assert len(dataset.features[0]) == len(dataset.feature_names)
+
+
+def test_build_pipeline_has_scaler_and_classifier() -> None:
+    assert list(build_pipeline().named_steps) == ["scaler", "classifier"]
+
+
+def test_train_writes_a_model_and_scores_well(tmp_path) -> None:
+    result = train(model_path=tmp_path / "model.joblib")
+    assert result.model_path.is_file()
+    assert result.accuracy > 0.7
+    assert result.report
+
+
+def test_predict_returns_a_known_label(model_bundle) -> None:
+    prediction = predict(EXAMPLE_FEATURES, model=model_bundle)
+    assert prediction.label in model_bundle["target_names"]
+    assert 0.0 <= prediction.confidence <= 1.0
+
+
+def test_predict_rejects_the_wrong_number_of_features(model_bundle) -> None:
+    with pytest.raises(ValueError):
+        predict([1.0, 2.0], model=model_bundle)
+
+
+def test_load_model_reports_a_missing_model(tmp_path) -> None:
+    with pytest.raises(ModelNotTrainedError):
+        load_model(tmp_path / "missing.joblib")

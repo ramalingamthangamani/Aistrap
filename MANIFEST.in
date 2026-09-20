@@ -1,0 +1,7 @@
+# Ship every template file - including dotfiles such as .gitignore.tmpl - in the
+# source distribution and the wheel.
+recursive-include src/aistrap/templates *
+include LICENSE
+include README.md
+include CONTRIBUTING.md
+include AGENTS.md

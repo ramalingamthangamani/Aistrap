@@ -1,0 +1,68 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `fastapi` template.
+
+A FastAPI backend ready for AI workloads, with a `/health` endpoint, settings
+loaded from the environment, tests and a Dockerfile.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── api/
+│   │   └── routes.py    # HTTP routes, including /health
+│   ├── config.py        # Settings loaded from the environment
+│   └── main.py          # FastAPI application factory
+├── config/              # Configuration files
+├── data/                # Datasets (git-ignored by default)
+├── tests/               # pytest test suite
+├── .env.example
+├── Dockerfile
+├── pytest.ini
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # Windows: copy .env.example .env
+```
+
+## Run the API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Then open:
+
+- http://127.0.0.1:8000/health - health check
+- http://127.0.0.1:8000/docs - interactive API documentation
+
+```bash
+curl http://127.0.0.1:8000/health
+# {"status":"ok","app":"{{project_name}}","version":"0.1.0"}
+```
+
+## Run the tests
+
+```bash
+pytest
+```
+
+## Run with Docker
+
+```bash
+docker build -t {{project_name}} .
+docker run --rm -p 8000:8000 {{project_name}}
+```
+
+## Next steps
+
+- Add routers under `app/api/` and include them in `app/main.py`.
+- Add request/response models with Pydantic.
+- Call your model or vector store from a route handler.

@@ -1,0 +1,45 @@
+"""Settings for {{project_name}}, loaded from environment variables.
+
+If ``python-dotenv`` is installed (it is listed in requirements.txt) a local
+``.env`` file is loaded as well.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # python-dotenv is optional at runtime
+
+    def load_dotenv(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+
+load_dotenv()
+
+#: Project root, so the app works no matter which directory you run it from.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve(value: str) -> Path:
+    """Resolve a configured path relative to the project root."""
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else PROJECT_ROOT / path
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Runtime settings for the retrieval pipeline."""
+
+    app_name: str = os.getenv("APP_NAME", "{{project_name}}")
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    documents_dir: Path = _resolve(os.getenv("DOCUMENTS_DIR", "documents"))
+    chunk_size: int = int(os.getenv("CHUNK_SIZE", "400"))
+    chunk_overlap: int = int(os.getenv("CHUNK_OVERLAP", "80"))
+    top_k: int = int(os.getenv("TOP_K", "3"))
+
+
+settings = Settings()

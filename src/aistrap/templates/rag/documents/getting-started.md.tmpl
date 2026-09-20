@@ -1,0 +1,32 @@
+# Retrieval-Augmented Generation
+
+Retrieval-augmented generation, or RAG, is a technique for answering questions
+over your own documents. Instead of relying on what a language model memorised
+during training, a RAG system retrieves relevant passages at query time and
+passes them to the model as context.
+
+## The pipeline
+
+A RAG pipeline has three steps:
+
+1. **Ingestion.** Documents are loaded and split into chunks that are small
+   enough to fit into a prompt but large enough to stay meaningful.
+2. **Retrieval.** The chunks most similar to the user's question are selected.
+   This starter uses TF-IDF scoring; production systems usually use embeddings
+   stored in a vector database.
+3. **Generation.** The retrieved chunks and the question are combined into a
+   prompt, and a language model writes the final answer.
+
+## Why chunking matters
+
+Chunks that are too large waste context and dilute the similarity score. Chunks
+that are too small lose the surrounding meaning. Overlapping chunks help,
+because a sentence that falls on a boundary still appears in full in one of the
+neighbouring chunks.
+
+## Where to go next
+
+Replace the TF-IDF retriever with embeddings when keyword matching stops being
+good enough, and add a generation step once you have chosen a model provider.
+Keep evaluation simple at first: a handful of questions with known answers will
+tell you more than a complicated metric.

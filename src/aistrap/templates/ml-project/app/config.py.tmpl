@@ -1,0 +1,45 @@
+"""Settings for {{project_name}}, loaded from environment variables.
+
+If ``python-dotenv`` is installed (it is listed in requirements.txt) a local
+``.env`` file is loaded as well.
+"""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # python-dotenv is optional at runtime
+
+    def load_dotenv(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+
+load_dotenv()
+
+#: Project root, so training works no matter which directory you run it from.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve(value: str) -> Path:
+    """Resolve a configured path relative to the project root."""
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else PROJECT_ROOT / path
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Runtime settings for training and prediction."""
+
+    app_name: str = os.getenv("APP_NAME", "{{project_name}}")
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    data_dir: Path = _resolve(os.getenv("DATA_DIR", "data"))
+    model_path: Path = _resolve(os.getenv("MODEL_PATH", "models/model.joblib"))
+    test_size: float = float(os.getenv("TEST_SIZE", "0.2"))
+    random_state: int = int(os.getenv("RANDOM_STATE", "42"))
+
+
+settings = Settings()

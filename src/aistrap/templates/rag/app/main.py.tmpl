@@ -1,0 +1,91 @@
+"""Command line entry point for {{project_name}}.
+
+Run it with::
+
+    python -m app.main "What is retrieval-augmented generation?"
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+
+from app.config import settings
+from app.ingestion import build_chunks, load_documents
+from app.retrieval import Retriever, SearchResult
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_QUESTION = "What is retrieval-augmented generation?"
+
+
+def build_retriever() -> Retriever:
+    """Load the documents directory and build an index over it."""
+    documents = load_documents(settings.documents_dir)
+    if not documents:
+        logger.warning("No documents found in %s", settings.documents_dir)
+    chunks = build_chunks(documents, settings.chunk_size, settings.chunk_overlap)
+    retriever = Retriever()
+    retriever.index(chunks)
+    logger.info("Indexed %d chunks from %d documents", len(chunks), len(documents))
+    return retriever
+
+
+def format_context(results: list[SearchResult]) -> str:
+    """Format retrieved chunks as the context block of a prompt."""
+    return "\n\n".join(
+        f"[{index}] ({result.chunk.label}) {result.chunk.text}"
+        for index, result in enumerate(results, start=1)
+    )
+
+
+def build_prompt(question: str, results: list[SearchResult]) -> str:
+    """Build the prompt you would send to an LLM.
+
+    This is the seam where you plug in your provider: pass the returned string
+    to a chat completion call and return the model's reply instead of the
+    extractive answer produced by :func:`answer`.
+    """
+    return (
+        "Answer the question using only the context below. "
+        "If the context does not contain the answer, say so.\n\n"
+        f"Context:\n{format_context(results)}\n\n"
+        f"Question: {question}\nAnswer:"
+    )
+
+
+def answer(question: str, retriever: Retriever | None = None) -> tuple[str, list[SearchResult]]:
+    """Answer ``question`` from the indexed documents.
+
+    The starter implementation is extractive: it returns the best matching
+    passage and its sources. Replace the body with an LLM call - the prompt is
+    ready via :func:`build_prompt` - once you have picked a provider.
+
+    Returns:
+        A ``(answer_text, results)`` pair.
+    """
+    retriever = retriever if retriever is not None else build_retriever()
+    results = retriever.search(question, settings.top_k)
+    if not results:
+        return ("No relevant passage was found in the indexed documents.", [])
+    return (results[0].chunk.text, results)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Answer a question passed on the command line."""
+    logging.basicConfig(level=settings.log_level, format="%(levelname)s %(message)s")
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    question = " ".join(arguments) if arguments else DEFAULT_QUESTION
+
+    text, results = answer(question)
+    print(f"Question: {question}\n")
+    print(f"Answer:\n{text}\n")
+    if results:
+        print("Sources:")
+        for result in results:
+            print(f"  - {result.chunk.label} (score {result.score:.3f})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

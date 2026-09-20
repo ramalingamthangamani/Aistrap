@@ -1,0 +1,86 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `rag` template.
+
+A lightweight retrieval-augmented generation starter. Ingestion, retrieval and
+prompt building are implemented with the Python standard library only, so the
+project runs the moment it is generated - no API keys, no vector database, no
+model downloads. Every piece is small enough to read and replace.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── config.py      # Settings loaded from the environment
+│   ├── ingestion.py   # Load documents and split them into chunks
+│   ├── retrieval.py   # TF-IDF index and cosine similarity search
+│   └── main.py        # CLI: ask a question, get an answer plus sources
+├── config/            # Configuration files
+├── data/              # Datasets (git-ignored by default)
+├── documents/         # The corpus that gets indexed
+├── tests/             # pytest test suite
+├── .env.example
+├── Dockerfile
+├── pytest.ini
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # Windows: copy .env.example .env
+```
+
+## Ask a question
+
+```bash
+python -m app.main "What is retrieval-augmented generation?"
+```
+
+```
+Question: What is retrieval-augmented generation?
+
+Answer:
+Retrieval-augmented generation, or RAG, is a technique for answering questions
+over your own documents. ...
+
+Sources:
+  - getting-started.md#0 (score 0.426)
+```
+
+Drop your own `.txt`, `.md` or `.rst` files into `documents/` and ask again.
+
+## Run the tests
+
+```bash
+pytest
+```
+
+## How it works
+
+1. `ingestion.load_documents` reads the files in `documents/`.
+2. `ingestion.chunk_text` splits them into overlapping chunks.
+3. `retrieval.Retriever` indexes the chunks with TF-IDF and ranks them by
+   cosine similarity against your question.
+4. `main.answer` returns the best passage and its sources.
+
+## Extending it
+
+- **Use embeddings.** Replace `Retriever` with a vector database client such as
+  Chroma, Qdrant or FAISS. Keep the `index()` / `search()` methods and nothing
+  else has to change.
+- **Add a language model.** `main.build_prompt` already assembles a grounded
+  prompt. Send it to your provider and return the reply from `main.answer`.
+- **Support more file types.** Extend `ingestion.TEXT_EXTENSIONS` and add a
+  parser for PDFs or HTML.
+
+## Run with Docker
+
+```bash
+docker build -t {{project_name}} .
+docker run --rm {{project_name}}
+```

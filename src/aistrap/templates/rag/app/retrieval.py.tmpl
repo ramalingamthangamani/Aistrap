@@ -1,0 +1,111 @@
+"""A small in-memory retriever based on TF-IDF and cosine similarity.
+
+It has no dependencies, so the generated project runs immediately. When you
+outgrow it, replace :class:`Retriever` with a vector database client - keep the
+``index``/``search`` methods and nothing else has to change.
+"""
+
+from __future__ import annotations
+
+import math
+import re
+from collections import Counter
+from dataclasses import dataclass, field
+
+from app.ingestion import Chunk
+
+_WORD = re.compile(r"[a-zA-Z0-9']+")
+
+#: Very common words that add noise to the similarity score.
+STOP_WORDS = frozenset(
+    """a an and are as at be by for from has have how in is it its of on or that
+    the to was were what when where which who why with you your""".split()
+)
+
+
+def tokenize(text: str) -> list[str]:
+    """Split text into lowercase tokens, dropping stop words."""
+    return [
+        token
+        for match in _WORD.finditer(text.lower())
+        for token in [match.group()]
+        if token not in STOP_WORDS
+    ]
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    """A chunk together with its similarity score for a query."""
+
+    chunk: Chunk
+    score: float
+
+
+@dataclass
+class Retriever:
+    """An in-memory TF-IDF index over document chunks."""
+
+    chunks: list[Chunk] = field(default_factory=list)
+    _vectors: list[dict[str, float]] = field(default_factory=list, repr=False)
+    _idf: dict[str, float] = field(default_factory=dict, repr=False)
+
+    def index(self, chunks: list[Chunk]) -> None:
+        """Build the index from ``chunks``, replacing anything indexed before."""
+        self.chunks = list(chunks)
+        self._vectors = []
+        self._idf = {}
+        if not self.chunks:
+            return
+
+        tokenized = [tokenize(chunk.text) for chunk in self.chunks]
+        document_frequency: Counter[str] = Counter()
+        for tokens in tokenized:
+            document_frequency.update(set(tokens))
+
+        total = len(self.chunks)
+        self._idf = {
+            term: math.log((total + 1) / (count + 1)) + 1.0
+            for term, count in document_frequency.items()
+        }
+        self._vectors = [self._vectorize(tokens) for tokens in tokenized]
+
+    def search(self, query: str, top_k: int = 3) -> list[SearchResult]:
+        """Return the ``top_k`` chunks most similar to ``query``.
+
+        Chunks that share no terms with the query are left out.
+        """
+        if top_k <= 0:
+            raise ValueError("top_k must be positive")
+        query_vector = self._vectorize(tokenize(query))
+        if not query_vector or not self._vectors:
+            return []
+
+        scored = [
+            SearchResult(chunk=chunk, score=_cosine(query_vector, vector))
+            for chunk, vector in zip(self.chunks, self._vectors)
+        ]
+        hits = [result for result in scored if result.score > 0]
+        hits.sort(key=lambda result: (-result.score, result.chunk.label))
+        return hits[:top_k]
+
+    def _vectorize(self, tokens: list[str]) -> dict[str, float]:
+        """Build a length-normalised TF-IDF vector for ``tokens``."""
+        if not tokens:
+            return {}
+        counts = Counter(tokens)
+        vector = {
+            # Unseen query terms get a neutral weight of 1.0.
+            term: (count / len(tokens)) * self._idf.get(term, 1.0)
+            for term, count in counts.items()
+        }
+        norm = math.sqrt(sum(weight * weight for weight in vector.values()))
+        if norm == 0:
+            return {}
+        return {term: weight / norm for term, weight in vector.items()}
+
+
+def _cosine(left: dict[str, float], right: dict[str, float]) -> float:
+    """Cosine similarity of two already normalised sparse vectors."""
+    if len(left) > len(right):
+        left, right = right, left
+    return sum(weight * right.get(term, 0.0) for term, weight in left.items())

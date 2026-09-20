@@ -1,0 +1,121 @@
+"""Train the {{project_name}} model.
+
+Run it with::
+
+    python -m app.train
+
+The example uses the built-in iris dataset so the project trains successfully
+right after generation. Replace :func:`load_dataset` with your own data loader.
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import joblib
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Dataset:
+    """Features, labels and the human-readable class names."""
+
+    features: list[list[float]]
+    labels: list[int]
+    target_names: list[str]
+    feature_names: list[str]
+
+
+@dataclass(frozen=True)
+class TrainingResult:
+    """What a training run produced."""
+
+    accuracy: float
+    model_path: Path
+    report: str
+
+
+def load_dataset() -> Dataset:
+    """Load the example dataset.
+
+    Replace this with a loader for your own data in ``data/`` - the rest of the
+    module only needs features, labels and class names.
+    """
+    bunch = load_iris()
+    return Dataset(
+        features=bunch.data.tolist(),
+        labels=bunch.target.tolist(),
+        target_names=[str(name) for name in bunch.target_names],
+        feature_names=[str(name) for name in bunch.feature_names],
+    )
+
+
+def build_pipeline() -> Pipeline:
+    """Build the model pipeline: scaling followed by logistic regression."""
+    return Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("classifier", LogisticRegression(max_iter=1000)),
+        ]
+    )
+
+
+def train(model_path: Path | None = None) -> TrainingResult:
+    """Train the model, evaluate it on a held-out split and save it to disk."""
+    dataset = load_dataset()
+    destination = Path(model_path) if model_path is not None else settings.model_path
+
+    features_train, features_test, labels_train, labels_test = train_test_split(
+        dataset.features,
+        dataset.labels,
+        test_size=settings.test_size,
+        random_state=settings.random_state,
+        stratify=dataset.labels,
+    )
+
+    pipeline = build_pipeline()
+    pipeline.fit(features_train, labels_train)
+
+    predictions = pipeline.predict(features_test)
+    accuracy = float(accuracy_score(labels_test, predictions))
+    report = classification_report(
+        labels_test, predictions, target_names=dataset.target_names
+    )
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(
+        {
+            "pipeline": pipeline,
+            "target_names": dataset.target_names,
+            "feature_names": dataset.feature_names,
+        },
+        destination,
+    )
+    logger.info("Saved model to %s", destination)
+    return TrainingResult(accuracy=accuracy, model_path=destination, report=report)
+
+
+def main() -> int:
+    """Train the model and print how it performed."""
+    logging.basicConfig(level=settings.log_level, format="%(levelname)s %(message)s")
+    result = train()
+    print(f"Accuracy: {result.accuracy:.3f}")
+    print()
+    print(result.report)
+    print(f"Model saved to {result.model_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
