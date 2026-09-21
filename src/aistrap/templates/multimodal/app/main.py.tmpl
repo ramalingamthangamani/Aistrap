@@ -1,0 +1,43 @@
+"""Entry point for {{project_name}} multimodal pipeline."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from app.config import settings
+from app.vision import build_vision_prompt, ensure_sample_image, inspect_image
+
+
+def main() -> int:
+    """Analyze an image and prepare the multimodal payload."""
+    sample_file = settings.data_dir / "sample.png"
+    if len(sys.argv) > 1:
+        target_path = Path(sys.argv[1])
+    else:
+        target_path = ensure_sample_image(sample_file)
+
+    user_prompt = sys.argv[2] if len(sys.argv) > 2 else "Describe what you see in this image."
+
+    if not target_path.exists():
+        print(f"File not found: {target_path}")
+        return 1
+
+    metadata = inspect_image(target_path)
+    print(f"[{settings.project_root.name}] Multimodal Image Inspection:")
+    print(f"  File:         {metadata.filename}")
+    print(f"  Format:       {metadata.format.upper()}")
+    print(f"  Dimensions:   {metadata.width} x {metadata.height}")
+    print(f"  Aspect Ratio: {metadata.aspect_ratio}")
+    print(f"  File Size:    {metadata.file_size_bytes} bytes\n")
+
+    payload = build_vision_prompt(target_path, user_prompt)
+    print("Prepared Multimodal Vision Payload:")
+    print(f"  Role:    {payload['role']}")
+    print(f"  Prompt:  '{user_prompt}'")
+    print(f"  Payload ready for: {settings.vision_model}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

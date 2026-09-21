@@ -1,0 +1,52 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `llm-eval` template.
+
+An LLM evaluation and benchmark harness for testing model accuracy, response latency, exact match, and token F1 overlap against golden datasets.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── __init__.py
+│   ├── config.py     # Environment settings & thresholds
+│   ├── evaluator.py  # Benchmark runner & report formatter
+│   ├── main.py       # CLI runner
+│   └── metrics.py    # Exact match, F1, latency, token estimation
+├── config/
+├── data/
+│   └── golden_dataset.json # Ground-truth benchmark dataset
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run the benchmark
+
+```bash
+# Run benchmark on bundled golden dataset
+python -m app.main
+
+# Or evaluate with a custom JSON dataset
+python -m app.main path/to/dataset.json
+```
+
+## Run tests
+
+```bash
+pytest
+```

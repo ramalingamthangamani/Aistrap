@@ -1,0 +1,48 @@
+"""Tests for {{project_name}} multimodal pipeline."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from app.vision import (
+    SAMPLE_PNG_BYTES,
+    build_vision_prompt,
+    detect_image_format,
+    encode_image_base64,
+    ensure_sample_image,
+    inspect_image,
+)
+
+
+def test_detect_image_format() -> None:
+    assert detect_image_format(SAMPLE_PNG_BYTES) == "png"
+    assert detect_image_format(b"\xff\xd8\xff\xe0sample") == "jpeg"
+    assert detect_image_format(b"GIF89a12345") == "gif"
+    assert detect_image_format(b"random bytes") == "unknown"
+
+
+def test_ensure_and_inspect_image(tmp_path: Path) -> None:
+    sample_img = tmp_path / "test.png"
+    ensure_sample_image(sample_img)
+    assert sample_img.is_file()
+
+    metadata = inspect_image(sample_img)
+    assert metadata.format == "png"
+    assert metadata.width == 1
+    assert metadata.height == 1
+    assert metadata.file_size_bytes > 0
+
+
+def test_encode_base64_and_build_prompt(tmp_path: Path) -> None:
+    sample_img = tmp_path / "test.png"
+    ensure_sample_image(sample_img)
+
+    uri = encode_image_base64(sample_img)
+    assert uri.startswith("data:image/png;base64,")
+
+    prompt_payload = build_vision_prompt(sample_img, "What is this?")
+    assert prompt_payload["role"] == "user"
+    content = prompt_payload["content"]
+    assert isinstance(content, list)
+    assert content[0]["text"] == "What is this?"
+    assert "data:image/png;base64" in content[1]["image_url"]["url"]

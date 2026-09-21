@@ -1,0 +1,54 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `chat-stream` template.
+
+A real-time streaming conversational AI service using FastAPI and Server-Sent Events (SSE) with session history.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── __init__.py
+│   ├── config.py    # Environment settings
+│   ├── main.py      # FastAPI SSE streaming server
+│   └── sessions.py  # Session conversation manager
+├── config/
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run the server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+## Streaming tokens with curl
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "demo", "message": "Tell me a short joke"}'
+```
+
+## Run tests
+
+```bash
+pytest
+```

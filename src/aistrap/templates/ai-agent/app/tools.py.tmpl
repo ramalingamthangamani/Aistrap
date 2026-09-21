@@ -1,0 +1,83 @@
+"""Tool registry and built-in tools for {{project_name}}."""
+
+from __future__ import annotations
+
+import math
+import re
+from dataclasses import dataclass
+from typing import Callable
+
+
+@dataclass(frozen=True)
+class Tool:
+    """A tool callable by the AI agent."""
+
+    name: str
+    description: str
+    func: Callable[[str], str]
+
+    def run(self, argument: str) -> str:
+        """Execute the tool safely."""
+        try:
+            return self.func(argument.strip())
+        except Exception as exc:  # noqa: BLE001
+            return f"Error executing {self.name}: {exc}"
+
+
+def calculate(expression: str) -> str:
+    """Safely evaluate basic arithmetic expressions."""
+    cleaned = expression.strip()
+    if not re.match(r"^[\d\s\+\-\*\/\(\)\.\%\^e]+$", cleaned):
+        return f"Invalid characters in calculation: {expression}"
+    try:
+        # Restricted eval for arithmetic
+        allowed = {"__builtins__": None, "math": math}
+        result = eval(cleaned.replace("^", "**"), allowed, {})  # noqa: S307
+        return str(result)
+    except Exception as exc:  # noqa: BLE001
+        return f"Calculation failed: {exc}"
+
+
+def word_count(text: str) -> str:
+    """Count words, characters, and lines in text."""
+    words = len(text.split())
+    chars = len(text)
+    lines = len(text.splitlines())
+    return f"Words: {words}, Characters: {chars}, Lines: {lines}"
+
+
+def lookup_knowledge(topic: str) -> str:
+    """Mock local knowledge lookup."""
+    knowledge = {
+        "ai": "Artificial Intelligence is the simulation of human intelligence by machines.",
+        "agent": "An AI agent perceives its environment, makes decisions, and takes actions to achieve goals.",
+        "tool": "A tool is an external function or API an agent can invoke to interact with the world.",
+        "react": "ReAct (Reasoning + Acting) combines step-by-step thought traces with tool executions.",
+    }
+    topic_clean = topic.strip().lower()
+    for key, val in knowledge.items():
+        if key in topic_clean:
+            return val
+    return f"No direct entry found for '{topic}'. Available topics: {', '.join(knowledge.keys())}."
+
+
+class ToolRegistry:
+    """Collection of tools available to the agent."""
+
+    def __init__(self) -> None:
+        self._tools: dict[str, Tool] = {}
+        self.register(Tool("calculator", "Evaluate arithmetic expressions e.g. '12 * 8'", calculate))
+        self.register(Tool("word_count", "Count words and characters in text", word_count))
+        self.register(Tool("knowledge", "Lookup definitions in local knowledge base", lookup_knowledge))
+
+    def register(self, tool: Tool) -> None:
+        self._tools[tool.name] = tool
+
+    def get(self, name: str) -> Tool | None:
+        return self._tools.get(name)
+
+    def list_tools(self) -> list[Tool]:
+        return list(self._tools.values())
+
+    def describe(self) -> str:
+        return "\n".join(f"- {t.name}: {t.description}" for t in self._tools.values())

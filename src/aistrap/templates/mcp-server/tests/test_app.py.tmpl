@@ -1,0 +1,60 @@
+"""Tests for {{project_name}} MCP server."""
+
+from __future__ import annotations
+
+import json
+
+from app.protocol import JsonRpcRequest
+from app.server import McpServer
+
+
+def test_initialize_request() -> None:
+    server = McpServer()
+    req = JsonRpcRequest(method="initialize", id=1, params={})
+    raw_res = server.handle_request(req)
+    assert raw_res is not None
+
+    res = json.loads(raw_res)
+    assert res["id"] == 1
+    assert res["result"]["protocolVersion"] == "2024-11-05"
+    assert "tools" in res["result"]["capabilities"]
+
+
+def test_tools_list() -> None:
+    server = McpServer()
+    req = JsonRpcRequest(method="tools/list", id=2)
+    raw_res = server.handle_request(req)
+    assert raw_res is not None
+
+    res = json.loads(raw_res)
+    tools = res["result"]["tools"]
+    tool_names = [t["name"] for t in tools]
+    assert "system_info" in tool_names
+    assert "text_stats" in tool_names
+
+
+def test_tools_call_text_stats() -> None:
+    server = McpServer()
+    req = JsonRpcRequest(
+        method="tools/call",
+        id=3,
+        params={"name": "text_stats", "arguments": {"text": "hello world from mcp"}},
+    )
+    raw_res = server.handle_request(req)
+    assert raw_res is not None
+
+    res = json.loads(raw_res)
+    content = res["result"]["content"][0]["text"]
+    assert "words" in content
+    assert "4" in content
+
+
+def test_tools_call_unknown() -> None:
+    server = McpServer()
+    req = JsonRpcRequest(method="tools/call", id=4, params={"name": "not_a_tool"})
+    raw_res = server.handle_request(req)
+    assert raw_res is not None
+
+    res = json.loads(raw_res)
+    assert "error" in res
+    assert "Unknown tool" in res["error"]["message"]

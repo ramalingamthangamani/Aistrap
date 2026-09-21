@@ -1,0 +1,31 @@
+"""Configuration for {{project_name}}."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+
+    def load_dotenv(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+
+load_dotenv()
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Settings for {{project_name}}."""
+
+    project_root: Path = Path(__file__).resolve().parent.parent
+    data_dir: Path = Path(__file__).resolve().parent.parent / "data"
+    golden_dataset: Path = Path(__file__).resolve().parent.parent / "data" / "golden_dataset.json"
+    f1_pass_threshold: float = float(os.getenv("F1_PASS_THRESHOLD", "0.6"))
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+
+
+settings = Settings()

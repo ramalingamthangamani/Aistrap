@@ -1,0 +1,89 @@
+"""FastAPI backend and UI server for {{project_name}}."""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+from app import __version__
+from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+class GenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, description="Input prompt for the AI")
+    temperature: float = Field(0.7, ge=0.0, le=2.0)
+
+
+class GenerateResponse(BaseModel):
+    prompt: str
+    response: str
+    tokens: int
+    model: str
+
+
+def create_app() -> FastAPI:
+    """Build and configure the fullstack application."""
+    logging.basicConfig(level=settings.log_level)
+    application = FastAPI(
+        title=settings.app_name,
+        version=__version__,
+        description="Fullstack AI web application generated with aistrap.",
+    )
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @application.get("/api/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok", "app": settings.app_name, "version": __version__}
+
+    @application.get("/api/info")
+    def info() -> dict[str, Any]:
+        return {
+            "name": settings.app_name,
+            "version": __version__,
+            "capabilities": ["chat", "completion", "fullstack-ui"],
+        }
+
+    @application.post("/api/generate", response_model=GenerateResponse)
+    def generate(payload: GenerateRequest) -> GenerateResponse:
+        prompt_text = payload.prompt.strip()
+        # Seam: plug in OpenAI, Anthropic, Gemini, or local models
+        simulated_response = (
+            f"AI Response for: '{prompt_text}'. "
+            "This fullstack template connects your custom model or provider seamlessly."
+        )
+        token_estimate = max(1, len(prompt_text.split()) + len(simulated_response.split()))
+        return GenerateResponse(
+            prompt=prompt_text,
+            response=simulated_response,
+            tokens=token_estimate,
+            model="default-ai-v1",
+        )
+
+    # Mount static assets if folder exists
+    if settings.static_dir.is_dir():
+        application.mount("/", StaticFiles(directory=str(settings.static_dir), html=True), name="static")
+
+    return application
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=True)

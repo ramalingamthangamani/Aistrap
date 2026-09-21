@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{project_title}} - AI Fullstack</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-area">
+        <div class="logo-badge">AI</div>
+        <h1>{{project_title}}</h1>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="status-text">Connected</span>
+      </div>
+    </header>
+
+    <main class="main-card">
+      <div class="chat-history" id="chat-history">
+        <div class="message system-message">
+          Welcome to {{project_title}}! Type a prompt below to interact with the fullstack AI API.
+        </div>
+      </div>
+
+      <form class="input-form" id="prompt-form">
+        <textarea
+          id="prompt-input"
+          placeholder="Ask something or write a prompt..."
+          rows="3"
+          required
+        ></textarea>
+        <div class="controls">
+          <div class="model-badge">Model: default-ai-v1</div>
+          <button type="submit" id="send-btn">Generate</button>
+        </div>
+      </form>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

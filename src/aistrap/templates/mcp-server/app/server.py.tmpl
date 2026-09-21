@@ -1,0 +1,111 @@
+"""Model Context Protocol (MCP) server dispatcher."""
+
+from __future__ import annotations
+
+import platform
+import sys
+from typing import Any
+
+from app.config import settings
+from app.protocol import (
+    INTERNAL_ERROR,
+    INVALID_PARAMS,
+    METHOD_NOT_FOUND,
+    JsonRpcRequest,
+    make_error,
+    make_response,
+)
+
+
+class McpServer:
+    """MCP standard server implementing core tool and resource dispatch."""
+
+    def __init__(self) -> None:
+        self.server_name = settings.server_name
+        self.server_version = settings.server_version
+
+    def handle_request(self, req: JsonRpcRequest) -> str | None:
+        """Handle a JSON-RPC request and return JSON response string (or None for notifications)."""
+        method = req.method
+
+        if method == "notifications/initialized":
+            return None
+
+        if method == "initialize":
+            return make_response(
+                req.id,
+                {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {}, "resources": {}},
+                    "serverInfo": {"name": self.server_name, "version": self.server_version},
+                },
+            )
+
+        if method == "tools/list":
+            return make_response(req.id, {"tools": self._get_tool_definitions()})
+
+        if method == "tools/call":
+            params = req.params or {}
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            return self._call_tool(req.id, tool_name, arguments)
+
+        if method == "resources/list":
+            return make_response(
+                req.id,
+                {
+                    "resources": [
+                        {
+                            "uri": "resource://system/info",
+                            "name": "Host System Information",
+                            "mimeType": "application/json",
+                        }
+                    ]
+                },
+            )
+
+        return make_error(req.id, METHOD_NOT_FOUND, f"Method '{method}' not implemented.")
+
+    def _get_tool_definitions(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "system_info",
+                "description": "Return operating system and Python runtime information.",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "text_stats",
+                "description": "Calculate word count, character count, and line metrics.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "The text to analyze."}
+                    },
+                    "required": ["text"],
+                },
+            },
+        ]
+
+    def _call_tool(self, req_id: str | int | None, name: str | None, args: dict[str, Any]) -> str:
+        if not name:
+            return make_error(req_id, INVALID_PARAMS, "Missing tool name in params.")
+
+        if name == "system_info":
+            info = {
+                "os": platform.system(),
+                "release": platform.release(),
+                "python": sys.version.split()[0],
+                "platform": platform.platform(),
+            }
+            return make_response(req_id, {"content": [{"type": "text", "text": str(info)}]})
+
+        if name == "text_stats":
+            text = str(args.get("text", ""))
+            stats = {
+                "characters": len(text),
+                "words": len(text.split()),
+                "lines": len(text.splitlines()),
+            }
+            return make_response(req_id, {"content": [{"type": "text", "text": str(stats)}]})
+
+        return make_error(req_id, INTERNAL_ERROR, f"Unknown tool: '{name}'.")

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Six new templates, bringing the total to ten:
+  - `ai-agent`: Autonomous AI agent with ReAct reasoning loop and tool registry.
+  - `ai-fullstack`: Fullstack AI application with FastAPI backend and modern Web UI.
+  - `mcp-server`: Model Context Protocol server exposing tools and resources over stdio.
+  - `multimodal`: Multimodal vision and media AI pipeline.
+  - `chat-stream`: Streaming conversational AI with Server-Sent Events (SSE) and session history.
+  - `llm-eval`: LLM evaluation and benchmark harness for accuracy, F1, and latency.
+
 ### Changed
 
 - Renamed the project, CLI, and Python package from `ai-project-starter` to `aistrap`.

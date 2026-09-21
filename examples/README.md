@@ -3,7 +3,7 @@
 What each template produces, and what to run next. The trees below are the real
 output of `aistrap create`.
 
-To generate all four into `examples/generated/` (git-ignored) and try them
+To generate all templates into `examples/generated/` (git-ignored) and try them
 yourself:
 
 ```bash
@@ -226,6 +226,216 @@ Prediction: setosa (confidence 0.981)
 To use your own data, put it in `data/` and rewrite `load_dataset()` in
 `app/train.py`. It only has to return features, labels, class names and feature
 names - everything else keeps working.
+
+---
+
+## `ai-agent` - autonomous AI agent
+
+```bash
+aistrap create my-app --template ai-agent
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── agent.py
+│   ├── config.py
+│   ├── main.py
+│   └── tools.py
+├── config/
+│   └── .gitkeep
+├── data/
+│   └── .gitkeep
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+python -m app.main "Calculate 25 * 4 and tell me what is AI"
+```
+
+---
+
+## `ai-fullstack` - fullstack AI app with Web UI
+
+```bash
+aistrap create my-app --template ai-fullstack
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   └── main.py
+├── config/
+│   └── .gitkeep
+├── data/
+│   └── .gitkeep
+├── static/
+│   ├── app.js
+│   ├── index.html
+│   └── style.css
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Open `http://127.0.0.1:8000` to interact with the responsive web interface.
+
+---
+
+## `mcp-server` - Model Context Protocol server
+
+```bash
+aistrap create my-app --template mcp-server
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── main.py
+│   ├── protocol.py
+│   └── server.py
+├── config/
+│   └── .gitkeep
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+python -m app.main
+```
+
+---
+
+## `multimodal` - multimodal vision & media pipeline
+
+```bash
+aistrap create my-app --template multimodal
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── main.py
+│   └── vision.py
+├── config/
+│   └── .gitkeep
+├── data/
+│   └── .gitkeep
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+python -m app.main
+```
+
+---
+
+## `chat-stream` - streaming conversational AI (SSE)
+
+```bash
+aistrap create my-app --template chat-stream
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── main.py
+│   └── sessions.py
+├── config/
+│   └── .gitkeep
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+---
+
+## `llm-eval` - LLM evaluation & benchmark harness
+
+```bash
+aistrap create my-app --template llm-eval
+```
+
+```
+my-app/
+├── app/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── evaluator.py
+│   ├── main.py
+│   └── metrics.py
+├── config/
+│   └── .gitkeep
+├── data/
+│   └── golden_dataset.json
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+```bash
+cd my-app
+pip install -r requirements.txt
+python -m app.main
+```
 
 ---
 

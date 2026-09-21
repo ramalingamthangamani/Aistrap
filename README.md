@@ -25,12 +25,12 @@ file in a couple of minutes, and then replace the parts you disagree with.
 
 ## Features
 
-- **Four templates** covering plain Python AI projects, FastAPI backends,
-  retrieval-augmented generation and scikit-learn workflows.
+- **Ten templates** covering plain Python AI, FastAPI, RAG, ML, autonomous agents,
+  fullstack web applications, MCP servers, multimodal vision, streaming chat, and LLM evaluation.
 - **Generated projects actually run.** Every template ships working code and a
   passing test suite - no stubs to fill in before you can check that it works.
-- **No paid APIs, no accounts.** The RAG template retrieves with
-  standard-library TF-IDF; the ML template trains on a bundled dataset.
+- **No paid APIs, no accounts.** Deterministic/offline fallback modes let every project
+  run immediately without requiring API keys or cloud accounts.
 - **No runtime dependencies.** The CLI itself uses only the standard library.
 - **Safe by default.** It refuses to write into a non-empty directory unless you
   confirm or pass `--force`.
@@ -133,10 +133,16 @@ Next steps:
 $ aistrap list
 Available templates:
 
-  python-ai   Basic Python AI project (default)
-  fastapi     FastAPI AI backend
-  rag         Retrieval-Augmented Generation project
-  ml-project  Machine learning project
+  python-ai     Basic Python AI project (default)
+  fastapi       FastAPI AI backend
+  rag           Retrieval-Augmented Generation project
+  ml-project    Machine learning project
+  ai-agent      Autonomous AI Agent with tool calling
+  ai-fullstack  Fullstack AI app with FastAPI backend and Web UI
+  mcp-server    Model Context Protocol (MCP) AI server
+  multimodal    Multimodal AI pipeline for vision, image, and media analysis
+  chat-stream   Streaming conversational AI with Server-Sent Events (SSE)
+  llm-eval      LLM evaluation and benchmark harness
 ```
 
 ### `doctor`
@@ -170,6 +176,12 @@ aistrap create --help
 | `fastapi` | FastAPI AI backend | Serving a model or an agent over HTTP |
 | `rag` | Retrieval-Augmented Generation project | Question answering over your own documents |
 | `ml-project` | Machine learning project | Training, evaluating and using a model |
+| `ai-agent` | Autonomous AI Agent with tool calling | Multi-step reasoning loops, tool dispatch, memory |
+| `ai-fullstack` | Fullstack AI app with Web UI | FastAPI backend + responsive dark-mode Web UI |
+| `mcp-server` | Model Context Protocol (MCP) server | Standard JSON-RPC server for Claude, Cursor, AGY |
+| `multimodal` | Multimodal Vision & Media pipeline | Image inspection, base64 encoding, Vision LLMs |
+| `chat-stream` | Streaming conversational AI (SSE) | Real-time Server-Sent Events token streaming |
+| `llm-eval` | LLM evaluation and benchmark harness | Golden dataset benchmarking, F1, exact match, latency |
 
 ### `python-ai`
 
@@ -200,9 +212,7 @@ curl http://127.0.0.1:8000/health
 
 A complete retrieval pipeline - ingestion, chunking, TF-IDF retrieval and prompt
 building - written with the standard library only. Drop `.md`, `.txt` or `.rst`
-files into `documents/` and ask questions. `build_prompt` in `app/main.py` is
-the seam where you plug in the language model of your choice; `Retriever` in
-`app/retrieval.py` is the seam for a vector database.
+files into `documents/` and ask questions.
 
 ```bash
 aistrap create my-rag-app --template rag
@@ -220,6 +230,73 @@ aistrap create my-model --template ml-project
 cd my-model && pip install -r requirements.txt
 python -m app.train                     # Accuracy: 0.933, model saved
 python -m app.predict 5.1 3.5 1.4 0.2   # Prediction: setosa (confidence 0.981)
+```
+
+### `ai-agent`
+
+An autonomous ReAct agent with a Think-Act-Observe reasoning loop and an extensible
+tool registry (calculator, word count, knowledge lookup).
+
+```bash
+aistrap create my-agent --template ai-agent
+cd my-agent && pip install -r requirements.txt
+python -m app.main "Calculate 25 * 4 and tell me what is AI"
+```
+
+### `ai-fullstack`
+
+A fullstack application pairing a FastAPI API (`/api/generate`, `/api/health`) with
+a responsive, dark-mode web interface served statically from `static/`.
+
+```bash
+aistrap create my-fullstack --template ai-fullstack
+cd my-fullstack && pip install -r requirements.txt
+uvicorn app.main:app --reload
+# Open http://127.0.0.1:8000 in your browser
+```
+
+### `mcp-server`
+
+A Model Context Protocol server exposing tools and system resources over stdio
+via standard JSON-RPC 2.0.
+
+```bash
+aistrap create my-mcp --template mcp-server
+cd my-mcp && pip install -r requirements.txt
+python -m app.main
+```
+
+### `multimodal`
+
+An image inspection and multimodal prompt-building pipeline supporting PNG, JPEG,
+GIF, and WebP, ready for vision LLMs.
+
+```bash
+aistrap create my-vision --template multimodal
+cd my-vision && pip install -r requirements.txt
+python -m app.main
+```
+
+### `chat-stream`
+
+A conversational AI service with real-time token streaming using Server-Sent
+Events (SSE) and session message memory.
+
+```bash
+aistrap create my-chat --template chat-stream
+cd my-chat && pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+### `llm-eval`
+
+An evaluation and benchmark harness calculating exact match, token overlap F1,
+and response latency against a golden dataset.
+
+```bash
+aistrap create my-eval --template llm-eval
+cd my-eval && pip install -r requirements.txt
+python -m app.main
 ```
 
 ## Generated project examples

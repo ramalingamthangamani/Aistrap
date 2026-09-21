@@ -18,7 +18,12 @@ import pytest
 from aistrap.cli import main
 
 #: template name -> module that must be importable for its tests to run.
-OPTIONAL_DEPENDENCIES = {"fastapi": "fastapi", "ml-project": "sklearn"}
+OPTIONAL_DEPENDENCIES = {
+    "fastapi": "fastapi",
+    "ml-project": "sklearn",
+    "ai-fullstack": "fastapi",
+    "chat-stream": "fastapi",
+}
 
 
 def generate(template: str, destination: Path) -> Path:
@@ -39,7 +44,21 @@ def run_pytest(project: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-@pytest.mark.parametrize("template", ["python-ai", "fastapi", "rag", "ml-project"])
+@pytest.mark.parametrize(
+    "template",
+    [
+        "python-ai",
+        "fastapi",
+        "rag",
+        "ml-project",
+        "ai-agent",
+        "ai-fullstack",
+        "mcp-server",
+        "multimodal",
+        "chat-stream",
+        "llm-eval",
+    ],
+)
 def test_generated_project_tests_pass(tmp_path: Path, template: str) -> None:
     dependency = OPTIONAL_DEPENDENCIES.get(template)
     if dependency and importlib.util.find_spec(dependency) is None:
@@ -49,7 +68,7 @@ def test_generated_project_tests_pass(tmp_path: Path, template: str) -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-@pytest.mark.parametrize("template", ["python-ai", "rag"])
+@pytest.mark.parametrize("template", ["python-ai", "rag", "ai-agent", "multimodal", "llm-eval"])
 def test_generated_project_runs_from_any_directory(tmp_path: Path, template: str) -> None:
     """``python -m app.main`` must work regardless of the current directory."""
     project = generate(template, tmp_path)

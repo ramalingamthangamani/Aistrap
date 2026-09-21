@@ -1,0 +1,33 @@
+"""CLI benchmark runner for {{project_name}}."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from app.config import settings
+from app.evaluator import load_dataset, run_benchmark
+
+
+def main() -> int:
+    """Run LLM evaluation benchmark against golden dataset."""
+    dataset_file = Path(sys.argv[1]) if len(sys.argv) > 1 else settings.golden_dataset
+
+    if not dataset_file.exists():
+        print(f"Benchmark dataset not found: {dataset_file}")
+        return 1
+
+    dataset = load_dataset(dataset_file)
+    print(f"Running evaluation benchmark on {len(dataset)} samples from {dataset_file.name}...\n")
+
+    report = run_benchmark(dataset)
+    print(report.summary())
+
+    passed = report.mean_f1 >= settings.f1_pass_threshold
+    status_str = "PASSED" if passed else "FAILED (below threshold)"
+    print(f"\nBenchmark Quality Gate ({settings.f1_pass_threshold} F1 threshold): {status_str}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

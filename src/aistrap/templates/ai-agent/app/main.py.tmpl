@@ -1,0 +1,33 @@
+"""Entry point for {{project_name}}."""
+
+from __future__ import annotations
+
+import sys
+
+from app.agent import Agent
+from app.config import settings
+
+
+def main(query: str | None = None) -> int:
+    """Run the agent on a user query."""
+    target_query = query or (sys.argv[1] if len(sys.argv) > 1 else "What is AI and calculate 15 * 4")
+
+    print(f"[{settings.agent_name}] Task: {target_query}\n")
+    agent = Agent()
+    result = agent.run(target_query)
+
+    for step in result.steps:
+        print(f"Step {step.step_number}:")
+        print(f"  Thought:     {step.thought}")
+        if step.action:
+            print(f"  Action:      {step.action} (input: {step.action_input})")
+        if step.observation:
+            print(f"  Observation: {step.observation}")
+        print()
+
+    print(f"Final Answer: {result.answer}")
+    return 0 if result.success else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

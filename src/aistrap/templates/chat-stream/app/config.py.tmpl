@@ -1,0 +1,35 @@
+"""Configuration for {{project_name}}."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+
+    def load_dotenv(*_args: object, **_kwargs: object) -> bool:
+        return False
+
+
+load_dotenv()
+
+
+@dataclass(frozen=True)
+class Settings:
+    """Settings for {{project_name}}."""
+
+    project_root: Path = Path(__file__).resolve().parent.parent
+    app_name: str = os.getenv("APP_NAME", "{{project_title}}")
+    host: str = os.getenv("HOST", "127.0.0.1")
+    port: int = int(os.getenv("PORT", "8000"))
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    system_prompt: str = os.getenv(
+        "SYSTEM_PROMPT", "You are a helpful, concise AI conversational assistant."
+    )
+    api_key: str = os.getenv("AI_API_KEY", "")
+
+
+settings = Settings()

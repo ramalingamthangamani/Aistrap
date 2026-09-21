@@ -1,0 +1,107 @@
+"""FastAPI streaming chat server for {{project_name}}."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from typing import AsyncGenerator
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from app import __version__
+from app.config import settings
+from app.sessions import SessionManager
+
+logger = logging.getLogger(__name__)
+
+
+class ChatRequest(BaseModel):
+    session_id: str = Field(default="default", description="Conversation session ID")
+    message: str = Field(..., min_length=1, description="User prompt message")
+
+
+session_manager = SessionManager()
+
+
+def create_app() -> FastAPI:
+    """Build and configure the streaming chat service."""
+    logging.basicConfig(level=settings.log_level)
+    application = FastAPI(
+        title=settings.app_name,
+        version=__version__,
+        description="Streaming conversational AI backend using Server-Sent Events (SSE).",
+    )
+
+    @application.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok", "app": settings.app_name, "version": __version__}
+
+    @application.get("/chat/history/{session_id}")
+    def get_history(session_id: str) -> dict[str, object]:
+        history = session_manager.get_history(session_id)
+        return {
+            "session_id": session_id,
+            "messages": [{"role": m.role, "content": m.content, "time": m.timestamp} for m in history],
+        }
+
+    @application.delete("/chat/history/{session_id}")
+    def clear_history(session_id: str) -> dict[str, object]:
+        cleared = session_manager.clear(session_id)
+        return {"session_id": session_id, "cleared": cleared}
+
+    async def token_generator(session_id: str, prompt: str) -> AsyncGenerator[str, None]:
+        session_manager.add_message(session_id, "user", prompt)
+
+        # Simulation: streaming tokens
+        # Seam: replace with OpenAI/Anthropic streaming client or Ollama chunk loop
+        simulated_tokens = [
+            "Hello! ",
+            "I ",
+            "received ",
+            "your ",
+            "message: ",
+            f"'{prompt}'. ",
+            "This ",
+            "is ",
+            "a ",
+            "real-time ",
+            "Server-Sent ",
+            "Events ",
+            "streaming ",
+            "response.",
+        ]
+
+        full_reply: list[str] = []
+        for token in simulated_tokens:
+            await asyncio.sleep(0.01)
+            full_reply.append(token)
+            yield f"data: {json.dumps({'token': token})}\n\n"
+
+        session_manager.add_message(session_id, "assistant", "".join(full_reply))
+        yield "data: [DONE]\n\n"
+
+    @application.post("/chat/stream")
+    async def chat_stream(payload: ChatRequest) -> StreamingResponse:
+        return StreamingResponse(
+            token_generator(payload.session_id, payload.message.strip()),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    return application
+
+
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=True)

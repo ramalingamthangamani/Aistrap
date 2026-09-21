@@ -1,0 +1,44 @@
+"""Tests for the {{project_name}} autonomous agent."""
+
+from __future__ import annotations
+
+from app.agent import Agent
+from app.tools import Tool, ToolRegistry, calculate, lookup_knowledge, word_count
+
+
+def test_calculator_tool() -> None:
+    assert calculate("2 + 3 * 4") == "14"
+    assert calculate("100 / 4") == "25.0"
+    assert "Invalid characters" in calculate("import os; os.system('ls')")
+
+
+def test_word_count_tool() -> None:
+    res = word_count("Hello world from testing")
+    assert "Words: 4" in res
+
+
+def test_knowledge_tool() -> None:
+    assert "Artificial Intelligence" in lookup_knowledge("what is ai")
+    assert "No direct entry" in lookup_knowledge("quantum soup")
+
+
+def test_custom_tool_registration() -> None:
+    registry = ToolRegistry()
+    registry.register(Tool("echo", "Echo input back", lambda s: f"echo: {s}"))
+    assert registry.get("echo") is not None
+    assert registry.get("echo").run("test") == "echo: test"
+
+
+def test_agent_runs_calculation() -> None:
+    agent = Agent()
+    result = agent.run("calculate 50 * 2")
+    assert result.success is True
+    assert "100" in result.answer
+    assert len(result.steps) >= 1
+
+
+def test_agent_runs_general_query() -> None:
+    agent = Agent()
+    result = agent.run("Hello there agent")
+    assert result.success is True
+    assert "Hello there agent" in result.answer

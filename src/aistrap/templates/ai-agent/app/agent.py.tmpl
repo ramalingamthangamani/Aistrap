@@ -1,0 +1,102 @@
+"""ReAct agent reasoning engine for {{project_name}}."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+from app.config import settings
+from app.tools import ToolRegistry
+
+
+@dataclass
+class AgentStep:
+    """A single step in the agent's thought process."""
+
+    step_number: int
+    thought: str
+    action: str = ""
+    action_input: str = ""
+    observation: str = ""
+
+
+@dataclass
+class AgentResult:
+    """Final outcome of an agent execution."""
+
+    query: str
+    answer: str
+    steps: list[AgentStep] = field(default_factory=list)
+    success: bool = True
+
+
+class Agent:
+    """Autonomous ReAct agent."""
+
+    def __init__(self, registry: ToolRegistry | None = None) -> None:
+        self.registry = registry or ToolRegistry()
+        self.max_steps = settings.max_steps
+
+    def run(self, query: str) -> AgentResult:
+        """Run the reasoning loop for the user query."""
+        steps: list[AgentStep] = []
+        current_query = query.strip()
+
+        for step_idx in range(1, self.max_steps + 1):
+            thought, action, action_input = self._plan_step(current_query, steps)
+            step = AgentStep(step_number=step_idx, thought=thought, action=action, action_input=action_input)
+
+            if action == "finish" or not action:
+                step.thought = thought or "I have enough information to answer."
+                steps.append(step)
+                return AgentResult(query=query, answer=action_input or thought, steps=steps, success=True)
+
+            tool = self.registry.get(action)
+            if tool:
+                step.observation = tool.run(action_input)
+            else:
+                step.observation = f"Tool '{action}' not found in registry."
+
+            steps.append(step)
+
+        return AgentResult(
+            query=query,
+            answer=f"Reached maximum steps ({self.max_steps}) without completing query.",
+            steps=steps,
+            success=False,
+        )
+
+    def _plan_step(self, query: str, history: list[AgentStep]) -> tuple[str, str, str]:
+        """Heuristic planner that can be replaced with an LLM prompt call."""
+        if settings.api_key:
+            return self._llm_think(query, history)
+        return self._heuristic_think(query, history)
+
+    def _heuristic_think(self, query: str, history: list[AgentStep]) -> tuple[str, str, str]:
+        """Offline deterministic reasoning for queries."""
+        # If we already have observations from previous tools, finish with the synthesis
+        if history:
+            last_obs = history[-1].observation
+            return ("Synthesizing final response from tool observation.", "finish", f"Result: {last_obs}")
+
+        # Check for calculation requests
+        calc_match = re.search(r"(\d+[\s\+\-\*\/\%\^]+\d+)", query)
+        if calc_match or "calculate" in query.lower() or "math" in query.lower():
+            expr = calc_match.group(1) if calc_match else "42 * 2"
+            return (f"The user wants a calculation for {expr}.", "calculator", expr)
+
+        # Check for word count requests
+        if "count" in query.lower() or "words" in query.lower():
+            return ("User wants word statistics for their text.", "word_count", query)
+
+        # Check for knowledge lookup
+        if "what is" in query.lower() or "define" in query.lower() or "know" in query.lower():
+            topic = query.lower().replace("what is", "").replace("define", "").strip(" ?.")
+            return (f"Searching knowledge base for topic '{topic}'.", "knowledge", topic or "ai")
+
+        # Default direct answer
+        return ("No external tools needed for this general query.", "finish", f"I processed your query: '{query}'.")
+
+    def _llm_think(self, query: str, history: list[AgentStep]) -> tuple[str, str, str]:
+        """Extension point: replace with OpenAI, Anthropic, or local model call."""
+        raise NotImplementedError("Configure external LLM client in app/agent.py")

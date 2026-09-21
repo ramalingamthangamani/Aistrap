@@ -1,0 +1,58 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `ai-agent` template.
+
+An autonomous AI agent with tool-calling capabilities, a ReAct reasoning loop (Think-Act-Observe), and an extensible tool registry.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── __init__.py
+│   ├── agent.py     # ReAct reasoning loop
+│   ├── config.py    # Environment settings
+│   ├── main.py      # Entry point
+│   └── tools.py     # Tool registry and built-in tools
+├── config/
+├── data/
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run the agent
+
+```bash
+python -m app.main "Calculate 25 * 4 and tell me what is AI"
+```
+
+## Run tests
+
+```bash
+pytest
+```
+
+## Adding custom tools
+
+Register tools in `app/tools.py`:
+
+```python
+def my_tool(arg: str) -> str:
+    return f"Processed: {arg}"
+
+registry.register(Tool("my_tool", "Description of what it does", my_tool))
+```

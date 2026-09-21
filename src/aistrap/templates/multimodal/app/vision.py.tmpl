@@ -1,0 +1,106 @@
+"""Multimodal image inspection and prompt formatting."""
+
+from __future__ import annotations
+
+import base64
+import struct
+from dataclasses import dataclass
+from pathlib import Path
+
+# Minimal valid 1x1 PNG bytes for testing and demos without external dependencies
+SAMPLE_PNG_BYTES = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+    b"\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01"
+    b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+)
+
+
+@dataclass(frozen=True)
+class ImageMetadata:
+    """Metadata describing an image file."""
+
+    filename: str
+    format: str
+    width: int
+    height: int
+    file_size_bytes: int
+
+    @property
+    def aspect_ratio(self) -> float:
+        return round(self.width / self.height, 2) if self.height else 0.0
+
+
+def ensure_sample_image(path: Path) -> Path:
+    """Ensure a sample image exists on disk for testing or demos."""
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(SAMPLE_PNG_BYTES)
+    return path
+
+
+def detect_image_format(data: bytes) -> str:
+    """Identify image format from header magic bytes."""
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "gif"
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "webp"
+    return "unknown"
+
+
+def extract_dimensions(data: bytes, img_format: str) -> tuple[int, int]:
+    """Extract width and height from image bytes using standard header structures."""
+    try:
+        if img_format == "png" and len(data) >= 24:
+            # PNG IHDR chunk starts at byte 16 (4 bytes width, 4 bytes height)
+            w, h = struct.unpack(">II", data[16:24])
+            return w, h
+        if img_format == "gif" and len(data) >= 10:
+            # GIF screen descriptor (2 bytes width, 2 bytes height, little endian)
+            w, h = struct.unpack("<HH", data[6:10])
+            return w, h
+    except Exception:  # noqa: BLE001
+        pass
+    return 0, 0
+
+
+def inspect_image(path: Path) -> ImageMetadata:
+    """Read and inspect an image file."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Image file not found: {path}")
+
+    raw_bytes = path.read_bytes()
+    fmt = detect_image_format(raw_bytes)
+    width, height = extract_dimensions(raw_bytes, fmt)
+
+    return ImageMetadata(
+        filename=path.name,
+        format=fmt,
+        width=width,
+        height=height,
+        file_size_bytes=len(raw_bytes),
+    )
+
+
+def encode_image_base64(path: Path) -> str:
+    """Return base64 data URI string for vision API payload."""
+    raw = path.read_bytes()
+    fmt = detect_image_format(raw)
+    mime = f"image/{fmt}" if fmt != "unknown" else "application/octet-stream"
+    encoded = base64.b64encode(raw).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
+
+
+def build_vision_prompt(image_path: Path, user_prompt: str) -> dict[str, object]:
+    """Build an OpenAI/Claude/Gemini compatible multimodal message payload."""
+    data_uri = encode_image_base64(image_path)
+    return {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": user_prompt},
+            {"type": "image_url", "image_url": {"url": data_uri}},
+        ],
+    }

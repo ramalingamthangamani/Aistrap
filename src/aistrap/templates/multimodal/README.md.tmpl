@@ -1,0 +1,50 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `multimodal` template.
+
+A multimodal AI pipeline for image and visual media inspection, format verification, base64 encoding, and vision LLM prompt formulation.
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── __init__.py
+│   ├── config.py    # Environment settings
+│   ├── main.py      # CLI entry point
+│   └── vision.py    # Image inspection and prompt builder
+├── config/
+├── data/            # Image files
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run the multimodal pipeline
+
+```bash
+# Run with bundled sample image
+python -m app.main
+
+# Or pass your own image file and prompt
+python -m app.main path/to/image.png "What objects are in this photo?"
+```
+
+## Run tests
+
+```bash
+pytest
+```

@@ -1,0 +1,62 @@
+# {{project_title}}
+
+> Generated with `aistrap` using the `mcp-server` template.
+
+A standard Model Context Protocol (MCP) server that exposes tools and resources to AI assistants like Claude Desktop, Cursor, and AI agents over standard I/O (JSON-RPC 2.0).
+
+## Project structure
+
+```
+{{project_name}}/
+├── app/
+│   ├── __init__.py
+│   ├── config.py    # Environment settings
+│   ├── main.py      # Stdio JSON-RPC event loop
+│   ├── protocol.py  # JSON-RPC 2.0 protocol definitions
+│   └── server.py    # MCP tools and resources dispatcher
+├── config/
+├── tests/
+│   └── test_app.py
+├── .env.example
+├── .gitignore
+├── pytest.ini
+├── README.md
+└── requirements.txt
+```
+
+## Getting started
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+## Run the server
+
+```bash
+python -m app.main
+```
+
+## Run tests
+
+```bash
+pytest
+```
+
+## Connecting to Claude Desktop or Cursor
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "{{project_name}}": {
+      "command": "python",
+      "args": ["-m", "app.main"],
+      "cwd": "/path/to/{{project_name}}"
+    }
+  }
+}
+```

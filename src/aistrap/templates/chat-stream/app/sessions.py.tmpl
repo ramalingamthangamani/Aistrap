@@ -1,0 +1,39 @@
+"""Conversation session management for {{project_name}}."""
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+
+
+@dataclass
+class ChatMessage:
+    """A single message in a conversation."""
+
+    role: str
+    content: str
+    timestamp: float = field(default_factory=time.time)
+
+
+class SessionManager:
+    """In-memory store of conversation histories keyed by session ID."""
+
+    def __init__(self) -> None:
+        self._sessions: dict[str, list[ChatMessage]] = {}
+
+    def get_history(self, session_id: str) -> list[ChatMessage]:
+        """Return history for session_id or empty list."""
+        return list(self._sessions.get(session_id, []))
+
+    def add_message(self, session_id: str, role: str, content: str) -> None:
+        """Append a message to the session."""
+        if session_id not in self._sessions:
+            self._sessions[session_id] = []
+        self._sessions[session_id].append(ChatMessage(role=role, content=content))
+
+    def clear(self, session_id: str) -> bool:
+        """Clear a session's history."""
+        if session_id in self._sessions:
+            del self._sessions[session_id]
+            return True
+        return False

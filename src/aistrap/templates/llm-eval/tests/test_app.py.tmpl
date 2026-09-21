@@ -1,0 +1,51 @@
+"""Tests for {{project_name}} evaluation harness."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from app.evaluator import EvalSample, load_dataset, run_benchmark
+from app.metrics import exact_match_score, normalize_answer, token_f1_score
+
+
+def test_normalize_answer() -> None:
+    assert normalize_answer("  Hello, World!  ") == "hello world"
+
+
+def test_exact_match_score() -> None:
+    assert exact_match_score("Paris", "paris.") is True
+    assert exact_match_score("London", "Paris") is False
+
+
+def test_token_f1_score() -> None:
+    # Full overlap
+    assert token_f1_score("the cat sat on mat", "the cat sat on mat") == 1.0
+    # Partial overlap
+    f1 = token_f1_score("the quick brown fox", "the fast brown dog")
+    assert 0.0 < f1 < 1.0
+    # No overlap
+    assert token_f1_score("apple orange", "car bicycle") == 0.0
+
+
+def test_load_dataset(tmp_path: Path) -> None:
+    sample_data = tmp_path / "dataset.json"
+    sample_data.write_text(
+        '[{"id": "test-1", "query": "Test?", "reference": "Yes."}]',
+        encoding="utf-8",
+    )
+    samples = load_dataset(sample_data)
+    assert len(samples) == 1
+    assert samples[0].id == "test-1"
+    assert samples[0].query == "Test?"
+
+
+def test_run_benchmark() -> None:
+    dataset = [
+        EvalSample(id="1", query="2+2?", reference="4"),
+        EvalSample(id="2", query="Sky color?", reference="blue"),
+    ]
+    report = run_benchmark(dataset, generator=lambda q: "4" if "2+2" in q else "blue")
+    assert report.total_samples == 2
+    assert report.exact_match_rate == 1.0
+    assert report.mean_f1 == 1.0
+    assert "LLM BENCHMARK EVALUATION REPORT" in report.summary()

@@ -1,0 +1,49 @@
+"""Tests for {{project_name}} streaming chat service."""
+
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+client = TestClient(app)
+
+
+def test_health_check() -> None:
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_streaming_chat_endpoint() -> None:
+    payload = {"session_id": "test-session-1", "message": "Hi assistant"}
+    response = client.post("/chat/stream", json=payload)
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
+
+    body = response.text
+    assert "data: " in body
+    assert "[DONE]" in body
+
+
+def test_chat_history_and_clear() -> None:
+    session_id = "test-session-history"
+    # Send a message to seed history
+    client.post("/chat/stream", json={"session_id": session_id, "message": "Remember this"})
+
+    # Check history contains user and assistant
+    hist_res = client.get(f"/chat/history/{session_id}")
+    assert hist_res.status_code == 200
+    messages = hist_res.json()["messages"]
+    assert len(messages) >= 2
+    assert messages[0]["role"] == "user"
+    assert messages[0]["content"] == "Remember this"
+
+    # Clear history
+    del_res = client.delete(f"/chat/history/{session_id}")
+    assert del_res.status_code == 200
+    assert del_res.json()["cleared"] is True
+
+    # Check empty after clear
+    empty_res = client.get(f"/chat/history/{session_id}")
+    assert len(empty_res.json()["messages"]) == 0

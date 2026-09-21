@@ -1,0 +1,45 @@
+"""JSON-RPC 2.0 protocol definitions for MCP."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Any
+
+PARSE_ERROR = -32700
+INVALID_REQUEST = -32600
+METHOD_NOT_FOUND = -32601
+INVALID_PARAMS = -32602
+INTERNAL_ERROR = -32603
+
+
+@dataclass
+class JsonRpcRequest:
+    """Incoming JSON-RPC 2.0 request or notification."""
+
+    method: str
+    id: str | int | None = None
+    params: dict[str, Any] | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> JsonRpcRequest:
+        if data.get("jsonrpc") != "2.0" or "method" not in data:
+            raise ValueError("Invalid JSON-RPC 2.0 request payload.")
+        return cls(
+            method=data["method"],
+            id=data.get("id"),
+            params=data.get("params"),
+        )
+
+
+def make_response(req_id: str | int | None, result: Any) -> str:
+    """Serialize a successful JSON-RPC result."""
+    return json.dumps({"jsonrpc": "2.0", "id": req_id, "result": result})
+
+
+def make_error(req_id: str | int | None, code: int, message: str, data: Any = None) -> str:
+    """Serialize a JSON-RPC error response."""
+    error_body: dict[str, Any] = {"code": code, "message": message}
+    if data is not None:
+        error_body["data"] = data
+    return json.dumps({"jsonrpc": "2.0", "id": req_id, "error": error_body})

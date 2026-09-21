@@ -1,0 +1,126 @@
+"""Benchmark evaluation engine for {{project_name}}."""
+
+from __future__ import annotations
+
+import json
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Callable
+
+from app.metrics import estimate_tokens, exact_match_score, token_f1_score
+
+
+@dataclass
+class EvalSample:
+    """A single evaluation record."""
+
+    id: str
+    query: str
+    reference: str
+    category: str = "general"
+
+
+@dataclass
+class SampleResult:
+    """Evaluation result for a single sample."""
+
+    sample: EvalSample
+    prediction: str
+    exact_match: bool
+    f1: float
+    latency_ms: float
+    tokens: int
+
+
+@dataclass
+class BenchmarkReport:
+    """Aggregated results across an evaluation run."""
+
+    total_samples: int
+    exact_match_rate: float
+    mean_f1: float
+    mean_latency_ms: float
+    results: list[SampleResult]
+
+    def summary(self) -> str:
+        lines = [
+            "=" * 55,
+            "           LLM BENCHMARK EVALUATION REPORT",
+            "=" * 55,
+            f"Total Evaluated Samples: {self.total_samples}",
+            f"Exact Match Accuracy:   {self.exact_match_rate * 100:.1f}%",
+            f"Mean Token F1 Score:    {self.mean_f1:.3f}",
+            f"Mean Latency:           {self.mean_latency_ms:.1f} ms",
+            "-" * 55,
+            f"{'ID':<6} {'CATEGORY':<12} {'F1':<6} {'EM':<5} {'LATENCY':<10}",
+            "-" * 55,
+        ]
+        for r in self.results:
+            em_str = "YES" if r.exact_match else "NO"
+            lines.append(
+                f"{r.sample.id:<6} {r.sample.category:<12} {r.f1:<6.2f} {em_str:<5} {r.latency_ms:<8.1f}ms"
+            )
+        lines.append("=" * 55)
+        return "\n".join(lines)
+
+
+def load_dataset(path: Path) -> list[EvalSample]:
+    """Load benchmark dataset from JSON."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Evaluation dataset not found: {path}")
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return [
+        EvalSample(
+            id=str(item.get("id", idx + 1)),
+            query=item["query"],
+            reference=item["reference"],
+            category=item.get("category", "general"),
+        )
+        for idx, item in enumerate(data)
+    ]
+
+
+def run_benchmark(
+    dataset: list[EvalSample],
+    generator: Callable[[str], str] | None = None,
+) -> BenchmarkReport:
+    """Run evaluation benchmark across samples."""
+    # Default fallback candidate generator (deterministic)
+    gen = generator or (lambda q: f"Answer to: {q}")
+
+    results: list[SampleResult] = []
+
+    for sample in dataset:
+        start = time.perf_counter()
+        prediction = gen(sample.query)
+        latency = (time.perf_counter() - start) * 1000
+
+        em = exact_match_score(prediction, sample.reference)
+        f1 = token_f1_score(prediction, sample.reference)
+        tokens = estimate_tokens(prediction)
+
+        results.append(
+            SampleResult(
+                sample=sample,
+                prediction=prediction,
+                exact_match=em,
+                f1=f1,
+                latency_ms=latency,
+                tokens=tokens,
+            )
+        )
+
+    total = len(results)
+    mean_f1 = sum(r.f1 for r in results) / total if total else 0.0
+    em_rate = sum(1 for r in results if r.exact_match) / total if total else 0.0
+    mean_lat = sum(r.latency_ms for r in results) / total if total else 0.0
+
+    return BenchmarkReport(
+        total_samples=total,
+        exact_match_rate=em_rate,
+        mean_f1=round(mean_f1, 3),
+        mean_latency_ms=round(mean_lat, 2),
+        results=results,
+    )

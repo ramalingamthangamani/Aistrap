@@ -1,0 +1,42 @@
+"""Evaluation metrics for LLM responses."""
+
+from __future__ import annotations
+
+import re
+from collections import Counter
+
+
+def normalize_answer(text: str) -> str:
+    """Normalize text by lowercasing, removing punctuation and extra whitespace."""
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    return " ".join(text.split())
+
+
+def exact_match_score(prediction: str, ground_truth: str) -> bool:
+    """Return True if normalized prediction exactly matches ground truth."""
+    return normalize_answer(prediction) == normalize_answer(ground_truth)
+
+
+def token_f1_score(prediction: str, ground_truth: str) -> float:
+    """Calculate token overlap F1 score between prediction and reference."""
+    pred_tokens = normalize_answer(prediction).split()
+    truth_tokens = normalize_answer(ground_truth).split()
+
+    if not pred_tokens or not truth_tokens:
+        return 1.0 if pred_tokens == truth_tokens else 0.0
+
+    common = Counter(pred_tokens) & Counter(truth_tokens)
+    num_same = sum(common.values())
+
+    if num_same == 0:
+        return 0.0
+
+    precision = num_same / len(pred_tokens)
+    recall = num_same / len(truth_tokens)
+    return round(2 * (precision * recall) / (precision + recall), 3)
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate token count based on word count heuristic (~1.3 tokens/word)."""
+    return max(1, int(len(text.split()) * 1.3))

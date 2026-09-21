@@ -12,7 +12,18 @@ from aistrap.utils.registry import (
     template_names,
 )
 
-EXPECTED_TEMPLATES = {"python-ai", "fastapi", "rag", "ml-project"}
+EXPECTED_TEMPLATES = {
+    "python-ai",
+    "fastapi",
+    "rag",
+    "ml-project",
+    "ai-agent",
+    "ai-fullstack",
+    "mcp-server",
+    "multimodal",
+    "chat-stream",
+    "llm-eval",
+}
 
 
 def test_list_shows_every_template(run_cli) -> None:
