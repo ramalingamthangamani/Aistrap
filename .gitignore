@@ -21,6 +21,7 @@ env/
 .coverage
 coverage.xml
 htmlcov/
+uv.lock
 
 # Editors and OS
 .vscode/

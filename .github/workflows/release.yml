@@ -3,6 +3,11 @@ name: Release
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   pypi-publish:

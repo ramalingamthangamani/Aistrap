@@ -103,6 +103,6 @@ def render_template(template: Template, destination: Path, context: dict[str, st
         target = destination / Path(render_text(str(target_relative), context))
         target.parent.mkdir(parents=True, exist_ok=True)
         rendered = render_text(source.read_text(encoding="utf-8"), context)
-        target.write_text(rendered, encoding="utf-8", newline="\n")
+        target.write_bytes(rendered.encode("utf-8"))
         created.append(target.relative_to(destination))
     return sorted(created)
